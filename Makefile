@@ -7,6 +7,7 @@
 
 ## Build + Run (atalho recomendado)
 up:
+	@touch apostas_db.json
 	docker compose up -d --build
 
 ## Parar e remover containers
@@ -28,4 +29,5 @@ clean: stop
 reset: stop
 	@echo "⚠️  Apagando apostas_db.json"
 	-@rm -f apostas_db.json
+	@touch apostas_db.json
 	@make up

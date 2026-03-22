@@ -1,77 +1,75 @@
 # Mega Organizer (Mega Hub)
 
-O **Mega Organizer** (ou Mega Hub) é um sistema simples e colaborativo feito em **Go** para gerenciar apostas da Mega Sena e bolões (especialmente a Mega da Virada). 
-Ele permite o registro de jogos, prevenção de bilhetes repetidos (colisões), cálculo de valores de desdobramentos e visualização de estatísticas do grupo de apostadores.
+Um organizador simples e ágil focado na Mega Sena e Mega da Virada para registrar e controlar as apostas do bolão da firma ou de amigos.
+
+## Nova Arquitetura
+
+O projeto foi inteiramente refatorado e dividido em duas camadas principais:
+- **Backend (Go com Arquitetura DDD)**: Responsável pelas regras de negócio como a validação de dezenas, cálculos de custo da aposta, e verificação de colisões (duplicidade) de bilhetes.
+- **Frontend (Vue.js + Vite)**: Aplicação Web SPA (Single Page Application) de resposta rápida. Consome a API REST do backend usando funcionalidades nativas de reatividade, sendo totalmente estilizado com as classes do Tailwind CSS.
 
 ## Funcionalidades
+- **Registro de Apostas:** Aceita jogos simples (6) e desdobramentos (até 20 dezenas) e seleciona as dezenas remanescentes de forma aleatória em bilhetes com dezenas fixas.
+- **Cálculo Automatizado e Prevenção de Colisão:** Calcula os preços e alerta automaticamente caso a combinação exata de botões já tenha sido registrada por outro usuário do site.
+- **Filtros e Histórico:** Separação de jogos por temporadas/eventos (Ex: *Mega da Virada 2025*), visualização de dezenas mais "quentes", e histórico clicável para inspecionar jogos de um Nickname específico.
+- **Exclusão Transacional:** Jogos excluidos contam com um JWT falso (`MONOBOLA123`) para proteger contra uso malicioso de bots na API Pública.
 
-- **Registro de Jogos:** Cadastre apostas simples (6 dezenas) ou desdobramentos maiores (até 20 dezenas). O sistema possui a capacidade de preencher as dezenas restantes aleatoriamente em caso de jogos pré-fixados.
-- **Prevenção de Colisão:** O sistema verifica se alguma combinação idêntica já foi apostada no banco para não haver duplicidade de jogo no bolão.
-- **Dashboard e Estatísticas:** Acompanhe o total gasto, número total de jogos, e as dezenas mais "quentes" (mais apostadas).
-- **Separação por Temporadas / Bolões:** Organize apostas por eventos como `Mega da Virada 2025`.
-- **Histórico por Apostador:** Visualize os jogos atrelados a um *nickname* (nome de usuário).
-- **Proteção de Exclusão:** Excluir apostas lançadas por engano via API precisa de um Access Token (`MONOBOLA123`).
-- **Persistência Simples:** Todos os dados são salvos localmente num arquivo JSON (`apostas_db.json`).
+## Como Rodar o Projeto
 
-## Tecnologias
+Usamos `docker compose` para simplificar a inicialização simultânea de todas as aplicações dependentes. Tudo converge para o arquivo `apostas_db.json` gerado dinamicamente para armazenar as operações do aplicativo.
 
-- **Backend:** Go (Golang) com uso de pacotes nativos (`net/http`, `html/template`, `encoding/json`).
-- **Frontend:** HTML, JavaScript e CSS contidos na pasta `templates/`.
-- **Infraestrutura:** Docker, Docker Compose, Makefile.
-- **Hot-Reload:** [Air](https://github.com/cosmtrek/air) configurado via Dockerfile para atualizar instantaneamente o servidor em ambiente de desenvolvimento quando o código é alterado.
-
-## Rodando o Projeto
-
-O projeto já está configurado para o Docker, permitindo que suba rapidamente sem necessariamente ter o Go instalado no host.
-
-### Pré-requisitos
-- [Docker](https://docs.docker.com/get-docker/) e Docker Compose
+### Requisitos
+- Docker (com Compose V2 habilitado)
 - GNU Make
 
-### Comandos Make Disponíveis
-
-Subir o projeto (executa o build e roda):
+### Subindo a Aplicação
+Através do terminal na pasta do projeto, execute:
 ```bash
 make up
 ```
+Isso acionará o download das dependências no node e go e subirá as duas engrenagens. 
 
-Após subir o projeto, acesse a interface web em [http://localhost:8080](http://localhost:8080).
+Acesse a **interface do sistema** em: [http://localhost:5173](http://localhost:5173).
 
-Outros comandos úteis:
-- `make build`: Constrói a imagem Docker base (`mega-hub`).
-- `make run`: Apenas roda o contêiner já formatado com o volume e mapeamento da porta `8080`.
-- `make stop`: Para e remove o contêiner ativo.
-- `make logs`: Verifica os logs do contêiner ativo.
-- `make status`: Mostra o status do contêiner sendo executado.
-- `make clean`: Cessa a execução e apaga a imagem construída localmente.
-- `make reset`: **ATENÇÃO:** Para o servidor e **apaga todo o conteúdo** de `apostas_db.json`, fazendo um hard reset dos seus jogos.
+### Outros Comandos úteis:
+- `make stop`: Desliga todos os containeres do projeto (`frontend` e `backend`).
+- `make logs`: Verifica os logs e outputs (para debugar o hot-reload do Vite ou erros na API go).
+- `make clean`: Limpa os containers criados e mata os volumes pendentes.
+- `make reset`: **CUIDADO.** Exclui toda a persistência do seu `apostas_db.json` e inicializa a base de dados zerada na próxima execução.
 
-### Usando puramente o Docker Compose
-Se preferir não usar o Make:
-```bash
-docker-compose up -d --build
-```
+## Estrutura de Pastas e Códigos
 
-## Estrutura de Arquivos
+A configuração prioriza um fluxo unificado de dev onde você altera os módulos dinamicamente.
 
 ```text
 mega-organizer/
-├── Dockerfile           # Imagem Go + utilitário Air instalado embutido (porta 8080)
-├── Makefile             # Atalhos para lidar com a infraestrutura no Docker Compose
-├── docker-compose.yml   # Volume e definição local da aplicação e mountpoint.
-├── go.mod / go.sum      # Gestão de dependências do Go
-├── main.go              # Servidor, roteamento, e lógica de manipulação do BD JSON
-├── templates/
-│   └── index.html       # Single-Page Web Frontend (Dashboard, Listagem, Envio)
-└── apostas_db.json      # Arquivo gerado em runtime que funciona como Database
+├── backend/                  # API Rest (Golang + Arquitetura DDD)
+│   ├── cmd/server/           # Ponto de entrada (Main) da aplicação
+│   ├── internal/
+│   │   ├── application/      # Casos de uso (CreateBet, GetUserHistory...)
+│   │   ├── domain/           # Entidades (Bet, Stats...) e lógica matemática principal
+│   │   ├── infrastructure/   # Repositórios (Leitura/Escrita concorrente do JSOn)
+│   │   └── interfaces/http/  # Roteamento da API, Middlewares de Auth e Cors
+│   ├── Dockerfile            # Container isolado acoplado com o `Air` (Hot-Reload para o Go)
+│   └── .air.toml             # Config. do binário temporário de execução
+├── frontend/                 # Client consumid0r construído via Vite
+│   ├── src/
+│   │   ├── main.js           # Inicialização principal do Node/Vue
+│   │   ├── App.vue           # Componente Raiz da Aplicação (Layout + Requests)
+│   │   └── style.css         # Assets base do Vite
+│   ├── index.html            # Montagem estrutural que injeta as cdn do Tailwind e ícones
+│   ├── vite.config.js        # Configuração e direcionamento do proxy da `/api` pra porta `8080`
+│   └── Dockerfile            # Container para a exposição do Vite Client
+├── docker-compose.yml        # Acoplamento de Rede
+├── Makefile                  # Comandos de orquestração
+└── apostas_db.json           # Arquivo raiz criado dinamicamente, mantendo o banco
 ```
 
-## Rotas de API
+## Referência da Roteamento e Mapeamento Back -> Front
 
-O frontend (Ajax/Fetch) se comunica com o servidor através das seguintes rotas:
-
-- `GET /api/dados?season=X`: Pega estatísticas gerais e todas as apostas (filtrando opcionalmente por temporada).
-- `GET /api/custo?qtd=N`: Calcula de antemão e devolve o preço em R$ de um jogo segundo a quantidade de dezenas.
-- `GET /api/usuario/historico?nickname=Y`: Resgata todo o histórico de um dado nickname.
-- `POST /api/apostar`: Rota principal para cadastrar uma nova aposta, suportando `nickname`, `qtd`, `fixos` e `season`.
-- `DELETE /api/aposta/deletar?id=ID&token=MONOBOLA123`: Remove uma aposta pontualmente do banco. Requer o Token de Segurança.
+Caso use insomnia/postman, o backend escuta abertamente em `:8080/api`:
+- `GET /api/dados?season=...`: Retorna todas as métricas dos jogos registrados.
+- `GET /api/custo?qtd=6`: Utilizado pra prever o custo total de x números apostados sob o preço da aposta simples.
+- `GET /api/usuario/historico?nickname=XYZ`: Usado na modal do frontend.
+- `POST /api/apostar`: Recebe payload JSON gerando dezenas complementares aos preenchimentos em Array. Efetua a checagem no banco.
+- `DELETE /api/aposta/deletar`: Elimina um array do banco. Requer o parâmetro Header string.
