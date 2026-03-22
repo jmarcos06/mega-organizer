@@ -16,7 +16,7 @@ O projeto foi inteiramente refatorado e dividido em duas camadas principais:
 
 ## Como Rodar o Projeto
 
-Usamos `docker compose` para simplificar a inicialização simultânea de todas as aplicações dependentes. Tudo converge para o arquivo `apostas_db.json` gerado dinamicamente para armazenar as operações do aplicativo.
+Usamos `docker compose` para simplificar a inicialização simultânea de todas as aplicações dependentes. Um container do **MongoDB** é inicializado junto com a API e o Frontend, simulando idênticamente o ambiente de produção Cloud.
 
 ### Requisitos
 - Docker (com Compose V2 habilitado)
@@ -32,10 +32,12 @@ Isso acionará o download das dependências no node e go e subirá as duas engre
 Acesse a **interface do sistema** em: [http://localhost:5173](http://localhost:5173).
 
 ### Outros Comandos úteis:
-- `make stop`: Desliga todos os containeres do projeto (`frontend` e `backend`).
-- `make logs`: Verifica os logs e outputs (para debugar o hot-reload do Vite ou erros na API go).
+- `make stop`: Desliga todos os containeres do projeto.
+- `make logs`: Verifica os logs e outputs (Vite/Go).
+- `make lint`: Roda o `golangci-lint` oficial via Docker no código do backend para checar a qualidade da aplicação.
+- `make lint-fix`: Roda o linter corrigindo automaticamente infrações simples de formatação go.
 - `make clean`: Limpa os containers criados e mata os volumes pendentes.
-- `make reset`: **CUIDADO.** Exclui toda a persistência do seu `apostas_db.json` e inicializa a base de dados zerada na próxima execução.
+- `make reset`: **CUIDADO.** Elimina permanentemente o volume de persistência offline do MongoDB e inicializa a base de dados zerada na próxima execução.
 
 ## Estrutura de Pastas e Códigos
 
@@ -48,7 +50,7 @@ mega-organizer/
 │   ├── internal/
 │   │   ├── application/      # Casos de uso (CreateBet, GetUserHistory...)
 │   │   ├── domain/           # Entidades (Bet, Stats...) e lógica matemática principal
-│   │   ├── infrastructure/   # Repositórios (Leitura/Escrita concorrente do JSOn)
+│   │   ├── infrastructure/   # Repositórios (Integração e consultas com o MongoDB)
 │   │   └── interfaces/http/  # Roteamento da API, Middlewares de Auth e Cors
 │   ├── Dockerfile            # Container isolado acoplado com o `Air` (Hot-Reload para o Go)
 │   └── .air.toml             # Config. do binário temporário de execução
@@ -60,9 +62,9 @@ mega-organizer/
 │   ├── index.html            # Montagem estrutural que injeta as cdn do Tailwind e ícones
 │   ├── vite.config.js        # Configuração e direcionamento do proxy da `/api` pra porta `8080`
 │   └── Dockerfile            # Container para a exposição do Vite Client
-├── docker-compose.yml        # Acoplamento de Rede
-├── Makefile                  # Comandos de orquestração
-└── apostas_db.json           # Arquivo raiz criado dinamicamente, mantendo o banco
+├── docker-compose.yml        # Acoplamento de Rede e Banco (MongoDB local)
+├── Makefile                  # Comandos de orquestração e Linting
+└── backend/.golangci.yml     # Configurações do linter GolangCI
 ```
 
 ## Referência da Roteamento e Mapeamento Back -> Front
