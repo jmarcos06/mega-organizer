@@ -7,9 +7,14 @@
           <i class="fas fa-clover text-green-400 text-2xl"></i>
           <h1 class="text-xl font-bold tracking-wider">MEGA HUB</h1>
         </div>
-        <div class="text-sm text-slate-400">
-          <span class="inline-block w-2 h-2 rounded-full bg-green-500 mr-1 animate-pulse"></span>
-          Ao Vivo
+        <div class="flex items-center gap-4 text-sm text-slate-400">
+          <button @click="isSeasonModalOpen = true" class="hover:text-green-400 transition flex items-center gap-1">
+            <i class="fas fa-cog"></i> Temporadas
+          </button>
+          <span>
+            <span class="inline-block w-2 h-2 rounded-full bg-green-500 mr-1 animate-pulse"></span>
+            Ao Vivo
+          </span>
         </div>
       </div>
     </nav>
@@ -69,9 +74,19 @@
           <div class="mt-4 pt-4 border-t border-slate-700">
             <p class="text-xs text-slate-500 mb-2">NÚMEROS MAIS JOGADOS:</p>
             <div class="flex flex-wrap gap-2">
-              <span v-for="n in stats.numeros_quentes" :key="n.numero" class="bg-yellow-600 text-yellow-100 text-xs px-2 py-1 rounded-full font-bold">
+              <span v-for="n in stats.numeros_quentes" :key="n.numero" class="bg-yellow-600 text-yellow-100 text-xs px-2 py-1 rounded-full font-bold shadow-sm">
                 {{ n.numero }} ({{ n.qtd }}x)
               </span>
+            </div>
+          </div>
+          
+          <div class="mt-4 pt-4 border-t border-slate-700">
+            <p class="text-xs text-slate-500 mb-2 uppercase">Apostadores da Temporada:</p>
+            <div class="flex flex-wrap gap-2">
+              <span v-for="user in stats.apostadores" :key="user" @click="showUserHistory(user)" class="cursor-pointer bg-slate-700 text-teal-200 text-xs px-3 py-1.5 rounded-full font-bold border border-slate-600 hover:bg-teal-600 hover:border-teal-400 hover:text-white transition-all shadow-sm">
+                <i class="fas fa-user-circle mr-1 text-teal-400 group-hover:text-white"></i>{{ user }}
+              </span>
+              <div v-if="!stats.apostadores || stats.apostadores.length === 0" class="text-xs text-slate-500 italic block w-full">Nenhum apostador ainda.</div>
             </div>
           </div>
         </div>
@@ -143,12 +158,35 @@
                   <div class="mb-2">
                     <span v-for="n in aposta.numeros" :key="n" class="inline-block w-6 h-6 leading-6 text-center rounded-full bg-slate-600 text-slate-200 font-bold text-xs border border-slate-500 mr-1 mb-1">{{ n }}</span>
                   </div>
-                  <div class="flex justify-between items-center text-xs">
+                  <div class="flex justify-between items-center text-xs mt-2">
                     <span class="text-slate-500">R$ {{ formatMoney(aposta.custo) }}</span>
-                    <button @click="reuseNumbers(aposta.numeros); isModalOpen = false;" class="text-blue-400 hover:text-blue-300"><i class="fas fa-copy"></i> Reusar</button>
+                    <button @click="cloneBet(aposta.numeros)" class="bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded transition whitespace-nowrap"><i class="fas fa-bolt"></i> Reapostar</button>
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seasons Modal -->
+    <div v-if="isSeasonModalOpen" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="isSeasonModalOpen = false">
+      <div class="bg-slate-800 rounded-xl max-w-lg w-full flex flex-col">
+        <div class="p-4 border-b border-slate-700 flex justify-between items-center">
+          <h2 class="text-lg font-bold text-white"><i class="fas fa-cog"></i> Gerenciar Temporadas</h2>
+          <button @click="isSeasonModalOpen = false" class="text-slate-400 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+        </div>
+        <div class="p-4 space-y-4">
+          <form @submit.prevent="createSeason" class="flex gap-2">
+            <input v-model="newSeasonName" type="text" placeholder="Nome da Temporada" class="flex-1 bg-slate-900 border border-slate-700 rounded p-2 focus:border-green-500 focus:outline-none text-white text-sm" required>
+            <button type="submit" class="bg-green-600 hover:bg-green-500 text-white px-4 rounded font-bold transition"><i class="fas fa-plus"></i></button>
+          </form>
+          <div class="max-h-60 overflow-y-auto custom-scrollbar border border-slate-700 rounded bg-slate-900">
+            <div v-if="availableSeasons.length === 0" class="p-3 text-center text-sm text-slate-500">Nenhuma temporada definida.</div>
+            <div v-for="s in availableSeasons" :key="s" class="flex justify-between items-center p-3 border-b border-slate-800 last:border-0 hover:bg-slate-800 transition">
+              <span class="text-white font-medium">{{ s }}</span>
+              <button @click="deleteSeason(s)" class="text-red-400 hover:text-red-300 px-2 py-1 rounded text-sm"><i class="fas fa-trash"></i></button>
             </div>
           </div>
         </div>
@@ -180,7 +218,9 @@ const stats = ref({
 const allSeasons = ref([]);
 const currentSeason = ref('');
 
-const availableSeasons = ref(['Mega da Virada 2025', 'Mega Sena Regular', 'Verão 2025']);
+const availableSeasons = ref([]);
+const isSeasonModalOpen = ref(false);
+const newSeasonName = ref('');
 
 const isModalOpen = ref(false);
 const selectedNickname = ref('');
@@ -198,28 +238,66 @@ const updateCost = async () => {
   } catch(e) { console.error(e); }
 };
 
+const fetchSeasons = async () => {
+  try {
+    const res = await fetch(`${API_BASE}/api/seasons`);
+    const data = await res.json();
+    availableSeasons.value = data.map(s => s.name);
+    // synchronize options
+    allSeasons.value = availableSeasons.value;
+    if (availableSeasons.value.length > 0 && !availableSeasons.value.includes(form.value.season)) {
+       form.value.season = availableSeasons.value[0];
+    }
+  } catch(e) { console.error(e); }
+};
+
+const createSeason = async () => {
+  if (!newSeasonName.value) return;
+  try {
+    const res = await fetch(`${API_BASE}/api/seasons`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newSeasonName.value })
+    });
+    if (!res.ok) throw new Error('Falha ao criar temporada');
+    newSeasonName.value = '';
+    fetchSeasons();
+  } catch(e) { alert('Erro: ' + e.message); }
+};
+
+const deleteSeason = async (name) => {
+  if (!confirm(`Deletar a temporada "${name}"? (Isso não apaga as apostas dela, apenas remove da lista)`)) return;
+  const token = prompt('Digite o token (MONOBOLA123) para deletar:');
+  if (token !== 'MONOBOLA123') { alert('Token incorreto'); return; }
+  
+  try {
+    const res = await fetch(`${API_BASE}/api/seasons?name=${encodeURIComponent(name)}&token=${token}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Erro ao deletar temporada');
+    fetchSeasons();
+  } catch(e) { alert('Erro: ' + e.message); }
+};
+
 const fetchData = async () => {
   try {
     const p = currentSeason.value ? `?season=${encodeURIComponent(currentSeason.value)}` : '';
     const res = await fetch(`${API_BASE}/api/dados${p}`);
     const data = await res.json();
     stats.value = data;
-    if (data.seasons && JSON.stringify(data.seasons) !== JSON.stringify(allSeasons.value)) {
-      allSeasons.value = data.seasons;
-      data.seasons.forEach(s => {
-        if (!availableSeasons.value.includes(s)) availableSeasons.value.push(s);
-      });
-    }
   } catch(e) { console.error(e); }
 };
 
 const submitBet = async () => {
   isSubmitting.value = true;
   try {
+    const payload = {
+      ...form.value,
+      qtd: String(form.value.qtd),
+      fixos: form.value.fixos ? String(form.value.fixos) : ''
+    };
     const res = await fetch(`${API_BASE}/api/apostar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form.value)
+      body: JSON.stringify(payload)
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro ao realizar aposta');
@@ -285,7 +363,42 @@ const reuseNumbers = (nums) => {
   updateCost();
 };
 
+const cloneBet = async (nums) => {
+  if (!form.value.nickname) { 
+    alert('Preencha seu nickname no formulário principal primeiro!'); 
+    return; 
+  }
+  if (!confirm(`Reapostar estes números para '${form.value.season}' no nome de ${form.value.nickname}?`)) return;
+  
+  isSubmitting.value = true;
+  try {
+    const payload = {
+      season: form.value.season,
+      nickname: form.value.nickname,
+      qtd: String(nums.length),
+      fixos: nums.join(' ')
+    };
+    const res = await fetch(`${API_BASE}/api/apostar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao clonar aposta');
+    
+    if (data.colisao) { 
+      alert(`⚠️ ATENÇÃO: O usuário ${data.colisao_com} já fez esse jogo exato!`); 
+    } else { 
+      if (window.confetti) window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } }); 
+    }
+    
+    isModalOpen.value = false;
+    fetchData();
+  } catch(e) { alert('Erro: ' + e.message); } finally { isSubmitting.value = false; }
+};
+
 onMounted(() => {
+  fetchSeasons();
   fetchData();
   intervalId = setInterval(fetchData, 5000);
 });

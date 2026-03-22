@@ -8,10 +8,11 @@ import (
 	"strings"
 
 	appBet "mega-play/internal/application/bet"
+	appSeason "mega-play/internal/application/season"
 	domainBet "mega-play/internal/domain/bet"
 )
 
-const AccessToken = "MONOBOLA123"
+const AccessToken = "MB123"
 
 func CorsMiddlewareDynamic(next http.HandlerFunc, allowedOrigins []string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -173,5 +174,51 @@ func HandlePostBet(useCases *appBet.UseCases) http.HandlerFunc {
 			"colisao":     colisao,
 			"colisao_com": quem,
 		})
+	}
+}
+
+func HandleGetSeasons(useCases *appSeason.UseCases) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		seasons, err := useCases.GetAllSeasons(r.Context())
+		if err != nil {
+			http.Error(w, `{"error": "Erro ao buscar temporadas"}`, http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(seasons)
+	}
+}
+
+func HandleCreateSeason(useCases *appSeason.UseCases) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var input struct {
+			Name string `json:"name"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil || input.Name == "" {
+			http.Error(w, `{"error": "JSON inválido ou nome vazio"}`, http.StatusBadRequest)
+			return
+		}
+		if err := useCases.CreateSeason(r.Context(), input.Name); err != nil {
+			http.Error(w, `{"error": "Erro ao criar temporada"}`, http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	}
+}
+
+func HandleDeleteSeason(useCases *appSeason.UseCases) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		name := r.URL.Query().Get("name")
+		if name == "" {
+			http.Error(w, `{"error": "Nome da temporada é obrigatório"}`, http.StatusBadRequest)
+			return
+		}
+		if err := useCases.DeleteSeason(r.Context(), name); err != nil {
+			http.Error(w, `{"error": "Erro ao deletar temporada"}`, http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]bool{"success": true})
 	}
 }

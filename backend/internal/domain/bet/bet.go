@@ -23,6 +23,7 @@ type DashboardStats struct {
 	UltimasApostas []Bet     `json:"ultimas_apostas"`
 	NumerosQuentes []StatNum `json:"numeros_quentes"`
 	Seasons        []string  `json:"seasons"`
+	Apostadores    []string  `json:"apostadores"`
 }
 
 type UserHistory struct {

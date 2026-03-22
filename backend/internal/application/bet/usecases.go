@@ -86,6 +86,7 @@ func (u *UseCases) GetDashboardStats(currentSeason string) (domainBet.DashboardS
 	totalGasto := 0.0
 	freqMap := make(map[int]int)
 	seasonsMap := make(map[string]bool)
+	apostadoresMap := make(map[string]bool)
 
 	filtradas := make([]domainBet.Bet, 0)
 	for _, a := range todas {
@@ -105,6 +106,7 @@ func (u *UseCases) GetDashboardStats(currentSeason string) (domainBet.DashboardS
 
 	for _, a := range filtradas {
 		totalGasto += a.Custo
+		apostadoresMap[a.Nickname] = true
 		for _, n := range a.Numeros {
 			freqMap[n]++
 		}
@@ -127,11 +129,18 @@ func (u *UseCases) GetDashboardStats(currentSeason string) (domainBet.DashboardS
 	}
 	sort.Strings(seasons)
 
+	var apostadores []string
+	for p := range apostadoresMap {
+		apostadores = append(apostadores, p)
+	}
+	sort.Strings(apostadores)
+
 	return domainBet.DashboardStats{
 		TotalGasto:     totalGasto,
 		TotalJogos:     len(filtradas),
 		UltimasApostas: filtradas,
 		NumerosQuentes: stats,
 		Seasons:        seasons,
+		Apostadores:    apostadores,
 	}, nil
 }
