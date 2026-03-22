@@ -13,9 +13,28 @@ import (
 
 const AccessToken = "MONOBOLA123"
 
-func CorsMiddleware(next http.HandlerFunc) http.HandlerFunc {
+func CorsMiddlewareDynamic(next http.HandlerFunc, allowedOrigins []string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		origin := r.Header.Get("Origin")
+
+		allow := false
+		if len(allowedOrigins) == 0 {
+			allow = true // Local dev
+		} else {
+			for _, o := range allowedOrigins {
+				if o == origin || strings.HasSuffix(origin, ".vercel.app") {
+					allow = true
+					break
+				}
+			}
+		}
+
+		if allow {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+		} else {
+			w.Header().Set("Access-Control-Allow-Origin", "https://monobola.com")
+		}
+
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 

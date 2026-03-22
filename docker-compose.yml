@@ -1,13 +1,24 @@
 services:
+  database:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
   backend:
     build: 
       context: ./backend
     volumes:
       - ./backend:/app
-      - ../apostas_db.json:/app/apostas_db.json
     ports:
       - "8080:8080"
     working_dir: /app
+    environment:
+      - DATABASE_URL=mongodb://database:27017
+    depends_on:
+      - database
+
   frontend:
     build:
       context: ./frontend
@@ -18,3 +29,8 @@ services:
       - "5173:5173"
     environment:
       - VITE_API_URL=http://localhost:8080
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:

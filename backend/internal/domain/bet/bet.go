@@ -1,15 +1,15 @@
 package bet
 
 type Bet struct {
-	ID         string  `json:"id"`
-	Data       string  `json:"data"`
-	Nickname   string  `json:"nickname"`
-	Season     string  `json:"season"`
-	Numeros    []int   `json:"numeros"`
-	QtdDezenas int     `json:"qtd_dezenas"`
-	Custo      float64 `json:"custo"`
-	Seed       int64   `json:"seed"`
-	Tipo       string  `json:"tipo"`
+	ID         string  `json:"id" bson:"_id"`
+	Data       string  `json:"data" bson:"data"`
+	Nickname   string  `json:"nickname" bson:"nickname"`
+	Season     string  `json:"season" bson:"season"`
+	Numeros    []int   `json:"numeros" bson:"numeros"`
+	QtdDezenas int     `json:"qtd_dezenas" bson:"qtd_dezenas"`
+	Custo      float64 `json:"custo" bson:"custo"`
+	Seed       int64   `json:"seed" bson:"seed"`
+	Tipo       string  `json:"tipo" bson:"tipo"`
 }
 
 type StatNum struct {

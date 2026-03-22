@@ -160,6 +160,8 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 const form = ref({
   season: 'Mega da Virada 2025',
   nickname: '',
@@ -190,7 +192,7 @@ const formatMoney = (val) => Number(val || 0).toLocaleString('pt-BR', { minimumF
 const updateCost = async () => {
   if (form.value.qtd < 6 || form.value.qtd > 20) return;
   try {
-    const res = await fetch(`/api/custo?qtd=${form.value.qtd}`);
+    const res = await fetch(`${API_BASE}/api/custo?qtd=${form.value.qtd}`);
     const data = await res.json();
     if(data.custo !== undefined) estimatedCost.value = data.custo;
   } catch(e) { console.error(e); }
@@ -199,7 +201,7 @@ const updateCost = async () => {
 const fetchData = async () => {
   try {
     const p = currentSeason.value ? `?season=${encodeURIComponent(currentSeason.value)}` : '';
-    const res = await fetch(`/api/dados${p}`);
+    const res = await fetch(`${API_BASE}/api/dados${p}`);
     const data = await res.json();
     stats.value = data;
     if (data.seasons && JSON.stringify(data.seasons) !== JSON.stringify(allSeasons.value)) {
@@ -214,7 +216,7 @@ const fetchData = async () => {
 const submitBet = async () => {
   isSubmitting.value = true;
   try {
-    const res = await fetch('/api/apostar', {
+    const res = await fetch(`${API_BASE}/api/apostar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form.value)
@@ -246,7 +248,7 @@ const deleteAposta = async (id) => {
   if (!token) return;
   
   try {
-    const res = await fetch(`/api/aposta/deletar?id=${id}&token=${token}`, { method: 'DELETE' });
+    const res = await fetch(`${API_BASE}/api/aposta/deletar?id=${id}&token=${token}`, { method: 'DELETE' });
     if (!res.ok) {
       const e = await res.json();
       throw new Error(e.error || 'Erro ao deletar');
@@ -261,7 +263,7 @@ const deleteAposta = async (id) => {
 const showUserHistory = async (nickname) => {
   selectedNickname.value = nickname;
   try {
-    const res = await fetch(`/api/usuario/historico?nickname=${encodeURIComponent(nickname)}`);
+    const res = await fetch(`${API_BASE}/api/usuario/historico?nickname=${encodeURIComponent(nickname)}`);
     const data = await res.json();
     userHistory.value = data.apostas || [];
     isModalOpen.value = true;

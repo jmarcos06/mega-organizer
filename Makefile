@@ -7,7 +7,6 @@
 
 ## Build + Run (atalho recomendado)
 up:
-	@touch apostas_db.json
 	docker compose up -d --build
 
 ## Parar e remover containers
@@ -24,10 +23,10 @@ restart: stop up
 ## Remove tudo
 clean: stop
 	docker compose rm -f -v
+	docker volume rm mega-organizer_mongo_data || true
 
-## Reset total (APAGA histórico local)
+## Reset total (APAGA histórico MongoDB)
 reset: stop
-	@echo "⚠️  Apagando apostas_db.json"
-	-@rm -f apostas_db.json
-	@touch apostas_db.json
+	@echo "⚠️  Apagando volume do Banco de Dados MongoDB"
+	-@docker volume rm mega-organizer_mongo_data || true
 	@make up
