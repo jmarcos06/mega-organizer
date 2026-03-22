@@ -1,46 +1,28 @@
 # ======================
-# Configurações (env)
+# Configurações
 # ======================
 -include .env
 
-IMAGE_NAME ?= mega-hub
-CONTAINER_NAME ?= mega-server
-PORT ?= 8080
-DATA_DIR ?= $(shell pwd)
-
-.PHONY: build run up stop logs clean reset status
-
-## Build da imagem
-build:
-	docker build -t $(IMAGE_NAME) .
-
-## Rodar container
-run:
-	docker run -d \
-		-p $(PORT):8080 \
-		-v $(DATA_DIR):/data \
-		--name $(CONTAINER_NAME) \
-		$(IMAGE_NAME)
+.PHONY: up stop logs clean reset
 
 ## Build + Run (atalho recomendado)
-up: build run
+up:
+	docker compose up -d --build
 
-## Parar e remover container
+## Parar e remover containers
 stop:
-	-@docker stop $(CONTAINER_NAME)
-	-@docker rm $(CONTAINER_NAME)
+	docker compose down
 
-## Logs do container
+## Logs dos containers
 logs:
-	docker logs -f $(CONTAINER_NAME)
+	docker compose logs -f
 
-## Status do container
-status:
-	docker ps -a | grep $(CONTAINER_NAME) || echo "Container não existe"
+## Reiniciar
+restart: stop up
 
-## Remove container + imagem
+## Remove tudo
 clean: stop
-	-@docker rmi $(IMAGE_NAME)
+	docker compose rm -f -v
 
 ## Reset total (APAGA histórico local)
 reset: stop

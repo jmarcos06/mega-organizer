@@ -1,7 +1,20 @@
 services:
-  mega:
-    build: .
+  backend:
+    build: 
+      context: ./backend
     volumes:
-      - .:/app
+      - ./backend:/app
+      - ../apostas_db.json:/app/apostas_db.json
     ports:
       - "8080:8080"
+    working_dir: /app
+  frontend:
+    build:
+      context: ./frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8080
