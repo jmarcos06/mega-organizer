@@ -1,0 +1,67 @@
+run:
+  # timeout for analysis, e.g. 30s, 5m, default is 1m
+  timeout: 3m
+  # exit code when at least one issue was found, default is 1
+  issues-exit-code: 1
+  # include test files or not, default is true
+  tests: true
+
+linters-settings:
+  govet:
+    enable-all: true
+    disable:
+      - fieldalignment # too strict for this scope
+  gocyclo:
+    min-complexity: 15
+  gocognit:
+    min-complexity: 30
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+  gocritic:
+    enabled-tags:
+      - performance
+      - style
+      - experimental
+  revive:
+    rules:
+      - name: exported
+        disabled: true # Disables strict requirement for comments on exported types
+  gosec:
+    excludes:
+      - G104 # errcheck already handles unchecked errors
+
+linters:
+  disable-all: true
+  enable:
+    # Default linters recommended by golangci-lint
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+    
+    # Formatting and imports
+    - gofmt
+    - goimports
+    
+    # Advanced code improvements
+    - gocritic  # Suggests Go best practices
+    - revive    # Fast, configurable drop-in replacement for golint
+    
+    # Security and robustness (vital for APIs)
+    - gosec     # Scans for security vulnerabilities
+    - errorlint # Helps find common bugs with Go 1.13+ error wrapping
+    - bodyclose # Validates whether HTTP response bodies are closed
+    - noctx     # Finds HTTP requests sent without context.Context
+
+issues:
+  exclude-rules:
+    # Ignore certain strict rules in tests
+    - path: _test\.go$
+      linters:
+        - gosec
+        - errcheck
+        - bodyclose

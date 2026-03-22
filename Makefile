@@ -17,6 +17,14 @@ stop:
 logs:
 	docker compose logs -f
 
+## Rodar o golangci-lint em um container isolado Docker
+lint:
+	@cd backend && docker run --rm -v $$(pwd):/app -w /app golangci/golangci-lint:latest golangci-lint run
+
+## Rodar o linter com correção automática
+lint-fix:
+	@cd backend && docker run --rm -v $$(pwd):/app -w /app golangci/golangci-lint:latest golangci-lint run --fix
+
 ## Reiniciar
 restart: stop up
 
